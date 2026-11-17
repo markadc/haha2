@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>老婆大人闯关记</title>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#ffe9d6;--card:#fffaf5;--ink:#3b1a14;--hot:#ff4d6d;--hot-ink:#fff;--mint:#2bb67a;--soft:#ffd0b5;--muted:#8c5b4c;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#241013;--card:#321a1e;--ink:#ffeee6;--hot:#ff7a93;--hot-ink:#241013;--mint:#5fd9a3;--soft:#5a2e33;--muted:#e0aa98;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#241013;--card:#321a1e;--ink:#ffeee6;--hot:#ff7a93;--hot-ink:#241013;--mint:#5fd9a3;--soft:#5a2e33;--muted:#e0aa98;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"ZCOOL KuaiLe","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;display:flex;justify-content:center;padding:18px;overflow-x:hidden}
+.wrap{width:100%;max-width:440px}
+.dots{display:flex;justify-content:center;gap:10px;margin:6px 0 14px;font-size:26px}
+.dots span{filter:grayscale(1);opacity:.35;transition:.3s}
+.dots span.done{filter:none;opacity:1}
+.dots span.now{filter:none;opacity:1;transform:scale(1.25)}
+.card{background:var(--card);border:3px solid var(--soft);border-radius:26px;padding:24px 20px;text-align:center}
+h1{font-size:27px;font-weight:400;margin:0 0 6px}
+.hint{color:var(--muted);font-size:16px;line-height:1.5;margin:0 0 16px;min-height:24px}
+.score{font-size:18px;margin-bottom:10px}
+button{font:inherit;border:0;border-radius:16px;cursor:pointer;background:var(--soft);color:var(--ink);padding:12px 16px;font-size:18px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+button.main{background:var(--hot);color:var(--hot-ink)}
+.arena{position:relative;height:290px;border-radius:18px;background:var(--bg);overflow:hidden;touch-action:manipulation;user-select:none}
+.item{position:absolute;bottom:-50px;font-size:38px;padding:0;background:none;border-radius:50%;width:56px;height:56px;line-height:1;animation:rise 3.2s linear forwards}
+@keyframes rise{to{transform:translateY(-370px)}}
+.opts{display:grid;gap:10px}
+.opts button.right{background:var(--mint);color:#fff}
+.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.hole{height:84px;font-size:15px;line-height:1.3;padding:6px;background:var(--soft);border-radius:20px}
+.hole.up{background:var(--hot);color:var(--hot-ink)}
+.bar{height:22px;border-radius:99px;background:var(--bg);overflow:hidden;margin:16px 0}
+.bar i{display:block;height:100%;width:0;background:var(--hot)}
+.hug{width:150px;height:150px;border-radius:50%;font-size:60px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+input[type=range]{width:100%;accent-color:var(--hot);height:36px;margin:14px 0}
+.big{font-size:48px;color:var(--hot);margin:6px 0}
+.toast{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);background:var(--mint);color:#fff;font-size:30px;padding:16px 30px;border-radius:22px;z-index:40;pointer-events:none}
+.ticket{border:3px dashed var(--hot);border-radius:18px;padding:12px;margin:10px 0;font-size:19px}
+.heart{position:fixed;top:-40px;z-index:30;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.heart{display:none}.shake{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="dots" id="dots"></div>
+  <main class="card">
+    <h1 id="title"></h1>
+    <p class="hint" id="hint"></p>
+    <div id="stage"></div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+  var stage=$('#stage'),title=$('#title'),hint=$('#hint'),dots=$('#dots');
+  var cleanup=[],lv=0,N=5;
+  function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+  function head(t,h){title.textContent=t;hint.textContent=h}
+  function shake(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')}
+  function drawDots(){
+    dots.innerHTML='';
+    for(var i=0;i<N;i++){var s=document.createElement('span');s.textContent='💗';
+      s.className=i<lv?'done':(i===lv?'now':'');dots.appendChild(s)}
+  }
+  function go(n){
+    cleanup.forEach(function(f){f()});cleanup=[];lv=n;stage.innerHTML='';drawDots();
+    if(n>=N){finish();return}
+    levels[n]();
+  }
+  function pass(){
+    var t=document.createElement('div');t.className='toast';t.textContent='过关！🎉';document.body.appendChild(t);
+    setTimeout(function(){t.remove();go(lv+1)},900);
+  }
+  function hearts(n){
+    var set=['💗','💖','💕','🌹','😘'];
+    for(var i=0;i<n;i++){var d=document.createElement('div');d.className='heart';d.textContent=set[i%5];
+      d.style.left=Math.random()*100+'vw';d.style.fontSize=(18+Math.random()*26)+'px';
+      d.style.animationDuration=(2.5+Math.random()*2.5)+'s';d.style.animationDelay=Math.random()*1.2+'s';
+      document.body.appendChild(d);setTimeout(function(e){e.remove()},7000,d)}
+  }
+
+  var levels=[
+    /* 第1关：接爱心 */
+    function(){
+      head('第 1 关：接住老公的爱','点爱心 💗，别点袜子 🧦 和臭豆腐 💩');
+      var score=0,goal=8;
+      stage.innerHTML='<div class="score">已接住 <b id="sc">0</b> / '+goal+'</div><div class="arena" id="ar"></div>';
+      var ar=$('#ar'),sc=$('#sc');
+      var iv=setInterval(function(){
+        var b=document.createElement('button');b.className='item';
+        var bad=Math.random()<.3;b.textContent=bad?rnd(['🧦','💩']):'💗';
+        b.style.left=(Math.random()*(ar.clientWidth-60))+'px';
+        b.setAttribute('aria-label',bad?'臭东西':'爱心');
+        b.onpointerdown=function(e){
+          e.preventDefault();
+          if(bad){score=Math.max(0,score-1);hint.textContent='哎呀，点到臭东西了，扣一颗！';shake(ar)}
+          else{score++;hint.textContent='接得好！';if(score>=goal){clearInterval(iv);sc.textContent=score;pass();return}}
+          sc.textContent=score;b.remove();
+        };
+        ar.appendChild(b);setTimeout(function(){b.remove()},3300);
+      },520);
+      cleanup.push(function(){clearInterval(iv)});
+    },
+    /* 第2关：送分题 */
+    function(){
+      var qs=[
+        {q:'世界上老公最爱的人是谁？',o:['隔壁老王','老婆','前台小姐姐','手机里的游戏角色'],a:1,w:['你再想想，这个答案会出人命的。','老公听了想打自己。','不要乱说，老公要哭了。']},
+        {q:'老婆生气的时候，老公应该？',o:['先讲道理','保持沉默','先道歉，再说','默默玩手机'],a:2,w:['讲道理 = 火上浇油。','沉默 = 冷暴力，扣分。','玩手机 = 想睡沙发？']},
+        {q:'老婆说“随便”，其实是什么意思？',o:['真的随便','你猜','随便，但你得选对','不随便'],a:2,w:['这题是陷阱，别信。','“你猜”也是陷阱。','正确答案其实是：一切以老婆为准。']}
+      ];
+      var i=0;
+      function show(){
+        var q=qs[i];head('第 2 关：老公必答题','第 '+(i+1)+' / '+qs.length+' 题，答错老公会难过');
+        stage.innerHTML='<h1 style="font-size:23px;margin:4px 0 14px">'+q.q+'</h1><div class="opts" id="op"></div>';
+        q.o.forEach(function(t,k){
+          var b=document.createElement('button');b.textContent=t;
+          b.onclick=function(){
+            if(k===q.a){b.classList.add('right');b.textContent=t+' ✔';
+              setTimeout(function(){i++;if(i>=qs.length)pass();else show()},500)}
+            else{shake(b);hint.textContent=rnd(q.w)}
+          };
+          $('#op').appendChild(b);
+        });
+      }
+      show();
+    },
+    /* 第3关：打地鼠 */
+    function(){
+      head('第 3 关：打掉老公的坏习惯','冒出来就点，打够 8 个');
+      var habits=['🧦乱丢袜子','😴打呼噜','🎮打游戏','📱刷手机','🛋️瘫沙发','🙉装听不见'];
+      var goal=8,score=0;
+      stage.innerHTML='<div class="score">已打掉 <b id="sc">0</b> / '+goal+'</div><div class="grid" id="gr"></div>';
+      var gr=$('#gr'),sc=$('#sc'),holes=[],up=-1,tm;
+      for(var i=0;i<9;i++){(function(i){
+        var b=document.createElement('button');b.className='hole';b.textContent='🕳️';
+        b.onpointerdown=function(e){e.preventDefault();
+          if(i!==up)return;
+          score++;sc.textContent=score;b.className='hole';b.textContent='💥';up=-1;
+          if(score>=goal){clearInterval(iv);setTimeout(pass,200)}
+        };
+        gr.appendChild(b);holes.push(b);
+      })(i)}
+      function reset(){if(up>=0){holes[up].className='hole';holes[up].textContent='🕳️';up=-1}}
+      var iv=setInterval(function(){
+        reset();var k=Math.floor(Math.random()*9);up=k;
+        holes[k].className='hole up';holes[k].textContent=rnd(habits);
+        tm=setTimeout(reset,900);
+      },1100);
+      cleanup.push(function(){clearInterval(iv);clearTimeout(tm)});
+    },
+    /* 第4关：长按拥抱 */
+    function(){
+      head('第 4 关：给老公一个大大的拥抱','按住抱抱键 2 秒不松手');
+      stage.innerHTML='<button class="hug" id="hg" aria-label="长按拥抱">🤗</button><div class="bar"><i id="fl"></i></div>';
+      var hg=$('#hg'),fl=$('#fl'),p=0,t=null;
+      function stop(){if(t){clearInterval(t);t=null}}
+      hg.oncontextmenu=function(e){e.preventDefault()};
+      hg.onpointerdown=function(e){
+        e.preventDefault();stop();p=0;hint.textContent='抱紧……不许松手……';
+        t=setInterval(function(){
+          p+=2.5;fl.style.width=p+'%';
+          if(p>=100){stop();hint.textContent='抱紧啦！';pass()}
+        },50);
+      };
+      function release(){
+        if(t){stop();if(p<100){fl.style.width='0';hint.textContent=rnd(['才抱这么一会儿就撒手？重来！','老公说：再抱久一点嘛～','松手太早啦，没感受到爱！'])}}
+      }
+      hg.onpointerup=release;hg.onpointerleave=release;hg.onpointercancel=release;
+      cleanup.push(stop);
+    },
+    /* 第5关：爱的刻度 */
+    function(){
+      head('终极关：老公有多爱你？','把滑块拖到最右边，看看答案');
+      stage.innerHTML='<div class="big" id="bg">0%</div><input type="range" id="rg" min="0" max="100" value="0" aria-label="爱的程度"><div class="hint" id="tx"></div>';
+      var rg=$('#rg'),bg=$('#bg'),tx=$('#tx'),done=false;
+      rg.oninput=function(){
+        var v=+rg.value;bg.textContent=v+'%';
+        tx.textContent=v<30?'老公：这么少？我不服！':v<60?'老公：嗯，还可以更多……':v<90?'老公：快了快了，再加点！':v<100?'老公：差一点点就爆表！':'';
+        if(v>=100&&!done){done=true;bg.textContent='爆表 ∞';tx.textContent='老公说：爱你永远满格，不接受反驳！';setTimeout(pass,700)}
+      };
+    }
+  ];
+
+  function finish(){
+    head('通关啦！恭喜老婆大人 👑','奖励已发放，请查收');
+    stage.innerHTML='<div class="ticket">🥣 免洗碗券 × 3</div><div class="ticket">🧋 奶茶券 × 1</div><div class="ticket">🤗 随时抱抱券（无限次）</div><div class="ticket">🏆 “老婆永远是对的”终身荣誉证书</div><p class="hint" style="margin-top:12px">以上券全部永久有效，解释权归老婆。</p><button class="main" id="re">再玩一次</button>';
+    hearts(40);
+    $('#re').onclick=function(){go(0)};
+  }
+  go(0);
+})();
+</script>
+</body>
+</html>

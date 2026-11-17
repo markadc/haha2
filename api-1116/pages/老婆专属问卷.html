@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>老婆专属问卷</title>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffe3e8; --card:#fff8f9; --ink:#4a1226; --rose:#e0245e; --rose-ink:#fff; --soft:#ffc2d1; --muted:#8a5566;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a0f1a;--card:#3a1624;--ink:#ffe8ee;--rose:#ff5c8a;--rose-ink:#2a0f1a;--soft:#6b2a42;--muted:#e3a6b8;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#2a0f1a;--card:#3a1624;--ink:#ffe8ee;--rose:#ff5c8a;--rose-ink:#2a0f1a;--soft:#6b2a42;--muted:#e3a6b8;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"ZCOOL KuaiLe","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;display:flex;align-items:center;justify-content:center;padding:20px;overflow-x:hidden}
+.card{width:100%;max-width:420px;background:var(--card);border-radius:28px;padding:36px 26px 30px;text-align:center;border:3px solid var(--soft);position:relative}
+.face{font-size:76px;line-height:1;display:inline-block;transition:transform .2s}
+h1{font-size:30px;line-height:1.35;margin:14px 0 6px;font-weight:400}
+.tip{min-height:48px;margin:0 0 22px;color:var(--muted);font-size:17px;line-height:1.5}
+.row{display:flex;gap:16px;justify-content:center;align-items:center;min-height:90px}
+button{font:inherit;border:0;border-radius:999px;cursor:pointer;padding:12px 26px;font-size:20px}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+#yes{background:var(--rose);color:var(--rose-ink);transition:transform .25s}
+#no{background:var(--soft);color:var(--ink);transition:left .18s,top .18s,transform .18s}
+#no.fly{position:fixed;z-index:5}
+.count{margin-top:20px;font-size:14px;color:var(--muted)}
+.overlay{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.overlay.on{display:flex}
+.coupon{max-width:380px;width:100%;border:3px dashed var(--rose);border-radius:24px;padding:30px 22px;text-align:center;background:var(--card)}
+.coupon h2{font-size:34px;margin:8px 0;font-weight:400;color:var(--rose)}
+.coupon p{font-size:18px;line-height:1.6;margin:8px 0}
+.coupon small{color:var(--muted);font-size:13px;line-height:1.5;display:block;margin-top:14px}
+.coupon button{margin-top:16px;background:var(--rose);color:var(--rose-ink);font-size:17px}
+.heart{position:fixed;top:-40px;z-index:30;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.heart{display:none}*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="card" id="card">
+  <div class="face" id="face">🥺</div>
+  <h1>老婆，你爱我吗？</h1>
+  <p class="tip" id="tip">请认真作答，老公在看着你呢。</p>
+  <div class="row">
+    <button id="yes">爱 💗</button>
+    <button id="no">不爱</button>
+  </div>
+  <div class="count" id="count">“不爱”被你逼得躲了 0 次</div>
+</main>
+
+<section class="overlay" id="win" aria-live="polite">
+  <div class="coupon">
+    <div style="font-size:64px">🎉</div>
+    <h2>答对啦！</h2>
+    <p>奖励老婆大人：<br><b>免洗碗券 × 1</b><br>外加抱抱一个、奶茶一杯</p>
+    <small>本券永久有效，但老公有最终解释权。<br>（其实没有，老婆说了算）</small>
+    <button id="again">再玩一次</button>
+  </div>
+</section>
+
+<script>
+(function(){
+  var yes=document.getElementById('yes'), no=document.getElementById('no');
+  var tip=document.getElementById('tip'), face=document.getElementById('face');
+  var count=document.getElementById('count'), win=document.getElementById('win');
+  var dodges=0;
+  var tips=[
+    '请认真作答，老公在看着你呢。',
+    '诶？按钮怎么自己跑了？',
+    '它好像不太想被你选中。',
+    '再试试？说不定下次就按到了。',
+    '“不爱”这个选项正在躲你。',
+    '它跑得比我下班还快。',
+    '别追了，它心虚。',
+    '要不……换个答案？',
+    '“爱”都已经长这么大了，给个面子。',
+    '好吧，它已经累得不想动了。'
+  ];
+  var faces=['🥺','😳','🤔','😏','🙈','😭','🫠','😤','🥹','😘'];
+
+  function dodge(e){
+    if(e&&e.preventDefault)e.preventDefault();
+    dodges++;
+    var w=no.offsetWidth, h=no.offsetHeight, m=12;
+    var x=m+Math.random()*(window.innerWidth-w-2*m);
+    var y=m+Math.random()*(window.innerHeight-h-2*m);
+    no.classList.add('fly');
+    no.style.left=x+'px'; no.style.top=y+'px';
+    var s=Math.max(.45,1-dodges*.06);
+    no.style.transform='scale('+s+')';
+    var g=1+Math.min(dodges,12)*.14;
+    yes.style.transform='scale('+g+')';
+    tip.textContent=tips[Math.min(dodges,tips.length-1)];
+    face.textContent=faces[Math.min(dodges,faces.length-1)];
+    count.textContent='“不爱”被你逼得躲了 '+dodges+' 次';
+  }
+
+  no.addEventListener('mouseenter',dodge);
+  no.addEventListener('touchstart',dodge,{passive:false});
+  no.addEventListener('click',function(e){
+    dodge(e);
+    tip.textContent='手滑了吧？再选一次，这次想好了再按。';
+  });
+  no.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' ')dodge(e); });
+
+  function hearts(){
+    var set=['💗','💖','💕','🌹','😘'];
+    for(var i=0;i<36;i++){
+      var d=document.createElement('div');
+      d.className='heart';
+      d.textContent=set[i%set.length];
+      d.style.left=Math.random()*100+'vw';
+      d.style.fontSize=(18+Math.random()*26)+'px';
+      d.style.animationDuration=(2.5+Math.random()*2.5)+'s';
+      d.style.animationDelay=(Math.random()*1.2)+'s';
+      document.body.appendChild(d);
+      setTimeout(function(el){el.remove()},7000,d);
+    }
+  }
+
+  yes.addEventListener('click',function(){
+    win.classList.add('on');
+    hearts();
+  });
+
+  document.getElementById('again').addEventListener('click',function(){
+    win.classList.remove('on');
+    dodges=0;
+    no.classList.remove('fly'); no.style.left=no.style.top=''; no.style.transform='';
+    yes.style.transform='';
+    tip.textContent=tips[0]; face.textContent=faces[0];
+    count.textContent='“不爱”被你逼得躲了 0 次';
+  });
+})();
+</script>
+</body>
+</html>
