@@ -179,13 +179,13 @@ form.addEventListener('submit', async (e) => {
 def _render_index_html(pages: dict[str, PageEntry]) -> str:
     items = []
     for entry in pages.values():
-        href = f"/html/{quote(entry.page_id, safe='')}"
+        href = f"/swx/{quote(entry.page_id, safe='')}"
         title = html.escape(entry.title)
         pid = html.escape(entry.page_id)
         items.append(
             f'<a class="item" href="{href}">'
             f'<span class="title">{title}</span>'
-            f'<span class="path">/html/{pid}</span>'
+            f'<span class="path">/swx/{pid}</span>'
             f"</a>"
         )
     list_html = (
@@ -251,12 +251,12 @@ def render_index(swx_auth: str | None = Cookie(default=None)) -> Response:
     return HTMLResponse(_render_index_html(_load_pages()))
 
 
-@app.get("/html/{page_id}", response_model=None)
+@app.get("/swx/{page_id}", response_model=None)
 def render_page(
     page_id: str,
     swx_auth: str | None = Cookie(default=None),
 ) -> Response:
-    """Serve a configured HTML page under /html/<id>."""
+    """Serve a configured HTML page under /swx/<id>."""
     if not _is_authenticated(swx_auth):
         return HTMLResponse(AUTH_PAGE_HTML)
     pages = _load_pages()
